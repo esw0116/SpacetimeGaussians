@@ -34,6 +34,7 @@ class CameraInfo(NamedTuple):
     FovY: np.array
     FovX: np.array
     image: np.array
+    depth: np.array
     image_path: str
     image_name: str
     width: int
@@ -76,6 +77,7 @@ def getNerfppNorm(cam_info):
 
     return {"translate": translate, "radius": radius}
 
+
 def readColmapCameras(cam_extrinsics, cam_intrinsics, images_folder, near, far, startime=0, duration=50):
     cam_infos = []
 
@@ -90,12 +92,8 @@ def readColmapCameras(cam_extrinsics, cam_intrinsics, images_folder, near, far, 
 
 
         near = bounds.min() * 0.95
-        far = bounds.max() * 1.05
-        
+        far = bounds.max() * 1.05        
         poses = poses_bounds[:, :15].reshape(-1, 3, 5) # 19, 3, 5
-
-
-
 
 
         H, W, focal = poses[0, :, -1]
@@ -130,9 +128,6 @@ def readColmapCameras(cam_extrinsics, cam_intrinsics, images_folder, near, far, 
 
         extr = cam_extrinsics[key]
 
-
-
-
         intr = cam_intrinsics[extr.camera_id]
         height = intr.height
         width = intr.width
@@ -154,20 +149,22 @@ def readColmapCameras(cam_extrinsics, cam_intrinsics, images_folder, near, far, 
             assert False, "Colmap camera model not handled: only undistorted datasets (PINHOLE or SIMPLE_PINHOLE cameras) supported!"
 
 
-
-       
         for j in range(startime, startime+ int(duration)):
             image_path = os.path.join(images_folder, os.path.basename(extr.name))
             image_name = os.path.basename(image_path).split(".")[0]
             image_path = image_path.replace("colmap_"+str(startime), "colmap_{}".format(j), 1)
             assert os.path.exists(image_path), "Image {} does not exist!".format(image_path)
             image = Image.open(image_path)
+
+            depth_path = image_path.replace('images', 'depths').replace('.png', '.npy')
+            assert os.path.exists(depth_path), "Depth {} does not exist!".format(depth_path)
+            depth = np.load(depth_path)
+
             if j == startime:
                 # cam_info = CameraInfo(uid=uid, R=R, T=T, FovY=FovY, FovX=FovX, image=image, image_path=image_path, image_name=image_name, width=width, height=height, near=near, far=far, timestamp=(j-startime)/duration, pose=hpposes[sortednamedict[os.path.basename(extr.name)]], hpdirecitons=hpdirecitons,cxr=0.0, cyr=0.0)
-                cam_info = CameraInfo(uid=uid, R=R, T=T, FovY=FovY, FovX=FovX, image=image, image_path=image_path, image_name=image_name, width=width, height=height, near=near, far=far, timestamp=(j-startime)/duration, pose=1, hpdirecitons=1,cxr=0.0, cyr=0.0)
-
+                cam_info = CameraInfo(uid=uid, R=R, T=T, FovY=FovY, FovX=FovX, image=image, depth=depth, image_path=image_path, image_name=image_name, width=width, height=height, near=near, far=far, timestamp=(j-startime)/duration, pose=1, hpdirecitons=1,cxr=0.0, cyr=0.0)
             else:
-                cam_info = CameraInfo(uid=uid, R=R, T=T, FovY=FovY, FovX=FovX, image=image, image_path=image_path, image_name=image_name, width=width, height=height, near=near, far=far, timestamp=(j-startime)/duration, pose=None, hpdirecitons=None, cxr=0.0, cyr=0.0)
+                cam_info = CameraInfo(uid=uid, R=R, T=T, FovY=FovY, FovX=FovX, image=image, depth=depth, image_path=image_path, image_name=image_name, width=width, height=height, near=near, far=far, timestamp=(j-startime)/duration, pose=None, hpdirecitons=None, cxr=0.0, cyr=0.0)
             cam_infos.append(cam_info)
     sys.stdout.write('\n')
     return cam_infos

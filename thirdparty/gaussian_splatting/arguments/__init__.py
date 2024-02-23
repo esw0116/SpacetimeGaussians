@@ -106,6 +106,7 @@ class OptimizationParams(ParamGroup):
         self.desicnt = 6
         self.reg = 0 
         self.regl = 0.0001 
+        self.lambda_depth = 0.1
         self.shrinkscale = 2.0 
         self.randomfeature = 0 
         self.emstype = 0

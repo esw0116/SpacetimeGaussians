@@ -10,12 +10,14 @@
 #
 
 from scene.cameras import Camera
-from scene.cameras import Camerass # ass 
+from scene.cameras import Camerass
 import numpy as np
+from scipy.interpolate import interp2d
 
 from utils.general_utils import PILtoTorch
 from utils.graphics_utils import fov2focal
-import torch 
+import torch
+from torch.nn import functional as F
 import os 
 WARNED = False
 
@@ -88,6 +90,9 @@ def loadCamv2(args, id, cam_info, resolution_scale):
         resolution = (int(orig_w / scale), int(orig_h / scale))
 
     resized_image_rgb = PILtoTorch(cam_info.image, resolution)
+    resized_depth = torch.from_numpy(cam_info.depth).unsqueeze(0).unsqueeze(0)
+    resized_depth = F.interpolate(resized_depth, size = (resolution[1], resolution[0]), mode='bicubic', align_corners=True)
+    resized_depth = resized_depth.squeeze(0).squeeze(0)
 
     gt_image = resized_image_rgb[:3, ...]
     loaded_mask = None
@@ -105,7 +110,7 @@ def loadCamv2(args, id, cam_info, resolution_scale):
         rays_d = None
     return Camera(colmap_id=cam_info.uid, R=cam_info.R, T=cam_info.T, 
                   FoVx=cam_info.FovX, FoVy=cam_info.FovY, 
-                  image=gt_image, gt_alpha_mask=loaded_mask,
+                  image=gt_image, depth= resized_depth, gt_alpha_mask=loaded_mask,
                   image_name=cam_info.image_name, uid=id, data_device=args.data_device, near=cam_info.near, far=cam_info.far, timestamp=cam_info.timestamp, rayo=rays_o, rayd=rays_d,cxr=cam_info.cxr,cyr=cam_info.cyr)
 
 

@@ -45,7 +45,7 @@ from argparse import Namespace
 from thirdparty.gaussian_splatting.helper3dg import getparser, getrenderparts
 
 
-def train(dataset, opt, pipe, saving_iterations, debug_from, densify=0, duration=50, rgbfunction="rgbv1", rdpip="v2"):
+def train(dataset, opt, pipe, saving_iterations, debug_from, densify=0, duration=50, rgbfunction="rgbv1", rdpip="v2", use_depth=True):
     with open(os.path.join(args.model_path, "cfg_args"), 'w') as cfg_log_f:
         cfg_log_f.write(str(Namespace(**vars(args))))
 
@@ -61,23 +61,17 @@ def train(dataset, opt, pipe, saving_iterations, debug_from, densify=0, duration
     gaussians.addsphpointsscale = opt.addsphpointsscale 
     gaussians.raystart = opt.raystart
 
-
-
-
-
     rbfbasefunction = trbfunction
     scene = Scene(dataset, gaussians, duration=duration, loader=dataset.loader)
     
-
     currentxyz = gaussians._xyz 
     maxx, maxy, maxz = torch.amax(currentxyz[:,0]), torch.amax(currentxyz[:,1]), torch.amax(currentxyz[:,2])# z wrong...
     minx, miny, minz = torch.amin(currentxyz[:,0]), torch.amin(currentxyz[:,1]), torch.amin(currentxyz[:,2])
-     
+    
 
     if os.path.exists(opt.prevpath):
         print("load from " + opt.prevpath)
         reloadhelper(gaussians, opt, maxx, maxy, maxz,  minx, miny, minz)
-   
 
 
     maxbounds = [maxx, maxy, maxz]
@@ -118,7 +112,6 @@ def train(dataset, opt, pipe, saving_iterations, debug_from, densify=0, duration
 
     scene.recordpoints(0, "start training")
 
-                                                            
     flagems = 0  
     emscnt = 0
     lossdiect = {}
@@ -132,8 +125,7 @@ def train(dataset, opt, pipe, saving_iterations, debug_from, densify=0, duration
         viewpointset = traincamdict[timeindex]
         for viewpoint_cam in viewpointset:
             render_pkg = render(viewpoint_cam, gaussians, pipe, background,  override_color=None,  basicfunction=rbfbasefunction, GRsetting=GRsetting, GRzer=GRzer)
-            
-            _, depthH, depthW = render_pkg["depth"].shape
+            depthH, depthW = render_pkg["depth"].shape[-2:]
             borderH = int(depthH/2)
             borderW = int(depthW/2)
 
@@ -176,8 +168,10 @@ def train(dataset, opt, pipe, saving_iterations, debug_from, densify=0, duration
             for i in range(opt.batch):
                 viewpoint_cam = camindex[i]
                 render_pkg = render(viewpoint_cam, gaussians, pipe, background,  override_color=None,  basicfunction=rbfbasefunction, GRsetting=GRsetting, GRzer=GRzer)
-                image, viewspace_point_tensor, visibility_filter, radii = getrenderparts(render_pkg) 
+                image, viewspace_point_tensor, visibility_filter, radii = getrenderparts(render_pkg)
+                depth = render_pkg["depth"]
                 gt_image = viewpoint_cam.original_image.float().cuda()
+                gt_depth = viewpoint_cam.original_depth
                 
                 if opt.reg == 2:
                     Ll1 = l2_loss(image, gt_image)
@@ -188,6 +182,15 @@ def train(dataset, opt, pipe, saving_iterations, debug_from, densify=0, duration
                 else:
                     Ll1 = l1_loss(image, gt_image)
                     loss = getloss(opt, Ll1, ssim, image, gt_image, gaussians, radii)
+
+                if use_depth:
+                    # Should be modified: L1 loss
+                    depth_low, depth_high = torch.quantile(depth, 0.15), torch.quantile(depth, 0.85)
+                    gt_depth_low, gt_depth_high = torch.quantile(gt_depth, 0.15), torch.quantile(gt_depth, 0.85)
+                    gt_depth = (depth_high - depth_low) / (gt_depth_high - gt_depth_low) * (gt_depth - gt_depth_low) + depth_low
+
+                    Ll1 = l1_loss(depth, gt_depth)
+                    loss += args.lambda_depth * Ll1
 
                 if flagems == 1:
                     if viewpoint_cam.image_name not in lossdiect:
@@ -220,7 +223,7 @@ def train(dataset, opt, pipe, saving_iterations, debug_from, densify=0, duration
 
             iter_end.record()
             gaussians.set_batch_gradient(opt.batch)
-             # note we retrieve the correct gradient except the mask
+            # note we retrieve the correct gradient except the mask
         else:
             raise NotImplementedError("Batch size 1 is not supported")
 
@@ -246,7 +249,7 @@ def train(dataset, opt, pipe, saving_iterations, debug_from, densify=0, duration
                 gaussians.max_radii2D[visibility_filter] = torch.max(gaussians.max_radii2D[visibility_filter], radii[visibility_filter])
                 gaussians.add_densification_stats(viewspace_point_tensor, visibility_filter)
             flag = controlgaussians(opt, gaussians, densify, iteration, scene,  visibility_filter, radii, viewspace_point_tensor, flag,  traincamerawithdistance=None, maxbounds=maxbounds,minbounds=minbounds)
-           
+            
             # guided sampling step
             if iteration > emsstartfromiterations and flagems == 2 and emscnt < selectedlength and viewpoint_cam.image_name in selectviews and (iteration - lasterems > 100): #["camera_0002"] :#selectviews :  #["camera_0002"]:
                 selectviews.pop(viewpoint_cam.image_name) # remove sampled cameras
@@ -295,17 +298,15 @@ def train(dataset, opt, pipe, saving_iterations, debug_from, densify=0, duration
                     patches_depth_orig = patches_depth_orig.permute(0, 2, 1, 3).contiguous()
                     patches_depth = patches_depth_orig.view(output_depth_h, output_depth_w).float() # 1 for error, 0 for no error
 
-                    depth = patches_depth[:render_pkg["depth"].shape[1], :render_pkg["depth"].shape[2]]
+                    depth = patches_depth[:render_pkg["depth"].shape[-2], :render_pkg["depth"].shape[-1]]
                     depth = depth.unsqueeze(0)
 
 
                     midpatch = torch.ones_like(patches)
-      
 
                     for i in range(0, kh,  2):
                         for j in range(0, kw, 2):
                             midpatch[:,:, i, j] = 0.0  
-   
                     centerpatches = patches * midpatch
 
                     unfold_shape = patches.size()
@@ -335,7 +336,10 @@ def train(dataset, opt, pipe, saving_iterations, debug_from, densify=0, duration
 
 
                     depth = render_pkg["depth"]
-                    depthmap = torch.cat((depth, depth, depth), dim=0)
+                    if depth.dim() == 2:
+                        depthmap = torch.stack((depth, depth, depth), dim=0)
+                    else:
+                        depthmap = torch.cat((depth, depth, depth), dim=0)
                     invaliddepthmask = depth == 15.0
 
                     pathdir = scene.model_path + "/ems_" + str(emscnt-1)
@@ -359,8 +363,8 @@ def train(dataset, opt, pipe, saving_iterations, debug_from, densify=0, duration
                     mediandepth = diff_sorted[mediandepth]
 
                     depth = torch.where(depth>mediandepth, depth,mediandepth )
-
-                  
+                    if depth.dim() == 2:
+                        depth = depth.unsqueeze(0)
                     totalNnewpoints = gaussians.addgaussians(badindices, viewpoint_cam, depth, gt_image, numperay=opt.farray,ratioend=opt.rayends,  depthmax=depthdict[viewpoint_cam.image_name], shuffle=(opt.shuffleems != 0))
 
                     gt_image = gt_image * errormask
@@ -387,9 +391,8 @@ def train(dataset, opt, pipe, saving_iterations, debug_from, densify=0, duration
 
 if __name__ == "__main__":
     
-
     args, lp_extract, op_extract, pp_extract = getparser()
-    train(lp_extract, op_extract, pp_extract, args.save_iterations, args.debug_from, densify=args.densify, duration=args.duration, rgbfunction=args.rgbfunction, rdpip=args.rdpip)
+    train(lp_extract, op_extract, pp_extract, args.save_iterations, args.debug_from, densify=args.densify, duration=args.duration, rgbfunction=args.rgbfunction, rdpip=args.rdpip, use_depth=args.depth)
 
     # All done
     print("\nTraining complete.")

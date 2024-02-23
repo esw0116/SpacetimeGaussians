@@ -51,6 +51,7 @@ def getparser():
     parser.add_argument("--rgbfunction", type=str, default = "rgbv1")
     parser.add_argument("--rdpip", type=str, default = "v2")
     parser.add_argument("--configpath", type=str, default = "None")
+    parser.add_argument("--depth", action="store_true")
 
     args = parser.parse_args(sys.argv[1:])
     args.save_iterations.append(args.iterations)
@@ -99,6 +100,7 @@ def gettestparse():
     parser.add_argument("--skip_train", action="store_true")
     parser.add_argument("--skip_test", action="store_true")
     parser.add_argument("--multiview", action="store_true")
+    parser.add_argument("--depth", action="store_true")
     parser.add_argument("--duration", default=50, type=int)
     parser.add_argument("--rgbfunction", type=str, default = "rgbv1")
     parser.add_argument("--rdpip", type=str, default = "v3")

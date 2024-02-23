@@ -1,44 +1,44 @@
 #!/bin/bash
 
 
-conda create -n feature_splatting python=3.7.13
-conda activate feature_splatting
+# conda create -n feature_splatting python=3.7.13
+# conda activate feature_splatting
 
 # seems that we sometimes got stuck in environment.yml, so we install the packages one by one
-conda install pytorch==1.12.1 torchvision==0.13.1 torchaudio==0.12.1 cudatoolkit=11.6 -c pytorch -c conda-forge
+# conda install pytorch==1.12.1 torchvision==0.13.1 torchaudio==0.12.1 cudatoolkit=11.6 -c pytorch -c conda-forge
 
 
-# Install for Gaussian Rasterization (Ch9) - Ours-Full
-pip install thirdparty/gaussian_splatting/submodules/gaussian_rasterization_ch9
+# # Install for Gaussian Rasterization (Ch9) - Ours-Full
+# pip install thirdparty/gaussian_splatting/submodules/gaussian_rasterization_ch9
 
-# Install for Gaussian Rasterization (Ch3) - Ours-Lite
-pip install thirdparty/gaussian_splatting/submodules/gaussian_rasterization_ch3
-
-
-
-# Install for Forward Lite - Ours-Lite (speed up testing)
-pip install thirdparty/gaussian_splatting/submodules/forward_lite
+# # Install for Gaussian Rasterization (Ch3) - Ours-Lite
+# pip install thirdparty/gaussian_splatting/submodules/gaussian_rasterization_ch3
 
 
-# install simpleknn
-pip install thirdparty/gaussian_splatting/submodules/simple-knn
 
-# install opencv-python-headless, to work with colmap on server
-pip install opencv-python
-# Install MMCV for CUDA KNN, used for init point sampling, reduce number of points when sfm points are too many
-cd thirdparty
-git clone https://github.com/open-mmlab/mmcv.git
-cd mmcv
-pip install -e .
-cd ../../
+# # Install for Forward Lite - Ours-Lite (speed up testing)
+# pip install thirdparty/gaussian_splatting/submodules/forward_lite
 
-# other packages
-pip install natsort
-pip install scipy
-pip install kornia
-# install colmap for preprocess, work with python3.8
-conda create -n colmapenv python=3.8
-conda activate colmapenv
+
+# # install simpleknn
+# pip install thirdparty/gaussian_splatting/submodules/simple-knn
+
+# # install opencv-python-headless, to work with colmap on server
+# pip install opencv-python
+# # Install MMCV for CUDA KNN, used for init point sampling, reduce number of points when sfm points are too many
+# cd thirdparty
+# git clone https://github.com/open-mmlab/mmcv.git
+# cd mmcv
+# pip install -e .
+# cd ../../
+
+# # other packages
+# pip install natsort
+# pip install scipy
+# pip install kornia
+# # install colmap for preprocess, work with python3.8
+# conda create -n colmapenv python=3.8
+# conda activate colmapenv
 pip install opencv-python-headless
 pip install tqdm
 pip install natsort

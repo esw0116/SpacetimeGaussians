@@ -22,7 +22,7 @@ import random
 class Camera(nn.Module):
     def __init__(self, colmap_id, R, T, FoVx, FoVy, image, gt_alpha_mask,
                  image_name, uid,
-                 trans=np.array([0.0, 0.0, 0.0]), scale=1.0, data_device = "cuda", near=0.01, far=100.0, timestamp=0.0, rayo=None, rayd=None, rays=None, cxr=0.0,cyr=0.0,
+                 depth=None, trans=np.array([0.0, 0.0, 0.0]), scale=1.0, data_device = "cuda", near=0.01, far=100.0, timestamp=0.0, rayo=None, rayd=None, rays=None, cxr=0.0,cyr=0.0,
                  ):
         super(Camera, self).__init__()
 
@@ -60,7 +60,10 @@ class Camera(nn.Module):
             self.image_height = image[1]
             self.original_image = None
         
-
+        if depth is not None:
+            self.original_depth = depth.to(self.data_device)
+        else:
+            self.original_depth = None
 
         self.zfar = 100.0
         self.znear = 0.01  
