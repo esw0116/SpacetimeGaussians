@@ -8,7 +8,7 @@ from marigold_utils import colorize, Marigold_estimation
 
 
 
-input_dir = '../dataset/Neural3D/cook_spinach'
+input_dir = '../dataset/Neural3D/sear_steak'
 
 input_folder_list = sorted(glob.glob(os.path.join(input_dir, 'colmap_*')))
 

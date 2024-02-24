@@ -102,12 +102,13 @@ def loadCamv2(args, id, cam_info, resolution_scale):
 
     cameradirect = cam_info.hpdirecitons
     camerapose = cam_info.pose 
-     
+    
     if camerapose is not None:
         rays_o, rays_d = 1, cameradirect
     else :
         rays_o = None
         rays_d = None
+
     return Camera(colmap_id=cam_info.uid, R=cam_info.R, T=cam_info.T, 
                   FoVx=cam_info.FovX, FoVy=cam_info.FovY, 
                   image=gt_image, depth= resized_depth, gt_alpha_mask=loaded_mask,
@@ -260,15 +261,17 @@ def cameraList_from_camInfos(cam_infos, resolution_scale, args):
 def cameraList_from_camInfosv2(cam_infos, resolution_scale, args, ss=False):
     camera_list = []
 
-    if not ss: #
+    if not ss:
         for id, c in enumerate(cam_infos):
             camera_list.append(loadCamv2(args, id, c, resolution_scale))
+
     else:
         for id, c in enumerate(cam_infos):
             camera_list.append(loadCamv2ss(args, id, c, resolution_scale))
             print("id", id)
 
     return camera_list
+
 def cameraList_from_camInfosv2nogt(cam_infos, resolution_scale, args):
     camera_list = []
 

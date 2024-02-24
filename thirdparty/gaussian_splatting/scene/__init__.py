@@ -59,6 +59,9 @@ class Scene:
 
         elif loader == "colmapmv" : # colmapvalid only for testing
             scene_info = sceneLoadTypeCallbacks["Colmapmv"](args.source_path, args.images, args.eval, multiview, duration=duration)
+        
+        elif loader == "blender" : # Blender type
+            scene_info = sceneLoadTypeCallbacks["blender"](args.source_path, args.images, args.eval, multiview, duration=duration)
         else:
             assert False, "Could not recognize scene type!"
 
@@ -80,8 +83,6 @@ class Scene:
             random.shuffle(scene_info.train_cameras)  # Multi-res consistent random shuffling
             random.shuffle(scene_info.test_cameras)  # Multi-res consistent random shuffling
 
- 
-
 
         self.cameras_extent = scene_info.nerf_normalization["radius"]
 
@@ -101,14 +102,12 @@ class Scene:
             
             
             print("Loading Test Cameras")
-            if loader  in ["colmapvalid", "immersivevalid", "colmap", "technicolorvalid", "technicolor", "imv2","imv2valid"]: # we need gt for metrics
+            if loader  in ["colmapvalid", "immersivevalid", "colmap", "technicolorvalid", "technicolor", "imv2","imv2valid", "blender"]: # we need gt for metrics
                 self.test_cameras[resolution_scale] = cameraList_from_camInfosv2(scene_info.test_cameras, resolution_scale, args)
             elif loader in ["immersivess", "immersivevalidss"]:
                 self.test_cameras[resolution_scale] = cameraList_from_camInfosv2(scene_info.test_cameras, resolution_scale, args, ss=True)
             elif loader in ["colmapmv"]:                 # only for multi view
-
-                self.test_cameras[resolution_scale] = cameraList_from_camInfosv2nogt(scene_info.test_cameras, resolution_scale, args)
-
+                self.test_cameras[resolution_scale] = cameraList_from_camInfosv2nogt(scene_info.test_cameras, resolution_scale, args)                
 
         for cam in self.train_cameras[resolution_scale]:
             if cam.image_name not in raydict and cam.rayo is not None:
@@ -142,7 +141,6 @@ class Scene:
             for cam in self.test_cameras[resolution_scale]:
                 cam.fisheyemapper = self.fisheyemapper[cam.image_name]
 
-       
         if self.loaded_iter :
             self.gaussians.load_ply(os.path.join(self.model_path,
                                                            "point_cloud",
@@ -150,7 +148,6 @@ class Scene:
                                                            "point_cloud.ply"))
         else:
             self.gaussians.create_from_pcd(scene_info.point_cloud, self.cameras_extent)
-
 
     def save(self, iteration):
         point_cloud_path = os.path.join(self.model_path, "point_cloud/iteration_{}".format(iteration))
@@ -167,4 +164,3 @@ class Scene:
 
     def getTestCameras(self, scale=1.0):
         return self.test_cameras[scale]
- 

@@ -99,12 +99,15 @@ def train(dataset, opt, pipe, saving_iterations, debug_from, densify=0, duration
     flagtwo = 0
     depthdict = {}
 
-    if opt.batch > 1:
-        traincameralist = scene.getTrainCameras().copy()
-        traincamdict = {}
-        for i in range(duration): # 0 to 4, -> (0.0, to 0.8)
-            traincamdict[i] = [cam for cam in traincameralist if cam.timestamp == i/duration]
-    
+    # if opt.batch > 1:
+    #     traincameralist = scene.getTrainCameras().copy()
+    #     traincamdict = {}
+    #     for i in range(duration): # 0 to 4, -> (0.0, to 0.8)
+    #         traincamdict[i] = [cam for cam in traincameralist if cam.timestamp == i/duration]
+    traincameralist = scene.getTrainCameras().copy()
+    traincamdict = {}
+    for i in range(duration): # 0 to 4, -> (0.0, to 0.8)
+        traincamdict[i] = [cam for cam in traincameralist if cam.timestamp == i/duration]
     
     if gaussians.ts is None :
         H,W = traincameralist[0].image_height, traincameralist[0].image_width
@@ -159,7 +162,7 @@ def train(dataset, opt, pipe, saving_iterations, debug_from, densify=0, duration
         if gaussians.rgbdecoder is not None:
             gaussians.rgbdecoder.train()
 
-        if opt.batch > 1:
+        if opt.batch >= 1:
             gaussians.zero_gradient_cache()
             timeindex = randint(0, duration-1) # 0 to 49
             viewpointset = traincamdict[timeindex]
