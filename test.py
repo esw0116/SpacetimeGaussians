@@ -73,7 +73,7 @@ def render_set(model_path, name, iteration, views, gaussians, pipeline, backgrou
 
     scalemax = torch.amax(scales).item()
     scalesmean = torch.amin(scales).item()
-     
+    
     op = gaussians.get_opacity
     opmax = torch.amax(op).item()
     opmean = torch.mean(op).item()
@@ -105,8 +105,6 @@ def render_set(model_path, name, iteration, views, gaussians, pipeline, backgrou
     full_dict[scene_dir] = {}
     per_view_dict[scene_dir] = {}
 
-  
-
     full_dict[scene_dir][iteration] = {}
     per_view_dict[scene_dir][iteration] = {}
 
@@ -135,8 +133,6 @@ def render_set(model_path, name, iteration, views, gaussians, pipeline, backgrou
         
         ssimv2 =  sk_ssim(rendernumpy, gtnumpy, multichannel=True)
         ssimsv2.append(ssimv2)
-
-
         
         torchvision.utils.save_image(rendering, os.path.join(render_path, '{0:05d}'.format(idx) + ".png"))
         torchvision.utils.save_image(gt, os.path.join(gts_path, '{0:05d}'.format(idx) + ".png"))
@@ -222,8 +218,7 @@ def run_test(dataset : ModelParams, iteration : int, pipeline : PipelineParams, 
         if multiview:
             render_setnogt(dataset.model_path, "mv", scene.loaded_iter, scene.getTestCameras(), gaussians, pipeline, background, rbfbasefunction, rdpip)
 
-if __name__ == "__main__":
-    
 
+if __name__ == "__main__":
     args, model_extract, pp_extract, multiview =gettestparse()
     run_test(model_extract, args.test_iteration, pp_extract, args.skip_train, args.skip_test, multiview, args.duration,  rgbfunction=args.rgbfunction, rdpip=args.rdpip, loader=args.valloader)

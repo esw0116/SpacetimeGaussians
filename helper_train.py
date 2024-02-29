@@ -58,14 +58,18 @@ def getrenderpip(option="train_ours_full"):
         from thirdparty.gaussian_splatting.renderer import train_ours_lite
         from diff_gaussian_rasterization_ch3 import GaussianRasterizationSettings 
         from diff_gaussian_rasterization_ch3 import GaussianRasterizer  
-
         return train_ours_lite, GaussianRasterizationSettings, GaussianRasterizer
     
+    elif option == "train_ours_lite_erp":
+        from thirdparty.gaussian_splatting.renderer import train_ours_lite_erp
+        from diff_gaussian_erp_rasterization import GaussianRasterizationSettings 
+        from diff_gaussian_erp_rasterization import GaussianRasterizer  
+        return train_ours_lite_erp, GaussianRasterizationSettings, GaussianRasterizer
+
     elif option == "train_ours_lite_depth":
         from thirdparty.gaussian_splatting.renderer import train_ours_lite_depth
         from diff_gaussian_rasterization_depth_acc import GaussianRasterizationSettings 
         from diff_gaussian_rasterization_depth_acc import GaussianRasterizer  
-
         return train_ours_lite_depth, GaussianRasterizationSettings, GaussianRasterizer
 
     elif option == "test_ours_full":

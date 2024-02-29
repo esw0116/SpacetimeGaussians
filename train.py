@@ -45,7 +45,7 @@ from argparse import Namespace
 from thirdparty.gaussian_splatting.helper3dg import getparser, getrenderparts
 
 
-def train(dataset, opt, pipe, saving_iterations, debug_from, densify=0, duration=50, rgbfunction="rgbv1", rdpip="v2", use_depth=True):
+def train(dataset, opt, pipe, saving_iterations, debug_from, densify=0, duration=50, rgbfunction="rgbv1", rdpip="v2", use_reldepth=True, use_absdepth=True):
     with open(os.path.join(args.model_path, "cfg_args"), 'w') as cfg_log_f:
         cfg_log_f.write(str(Namespace(**vars(args))))
 
@@ -56,7 +56,7 @@ def train(dataset, opt, pipe, saving_iterations, debug_from, densify=0, duration
     GaussianModel = getmodel(dataset.model) # gmodel, gmodelrgbonly
     
     gaussians = GaussianModel(dataset.sh_degree, rgbfunction)
-    gaussians.trbfslinit = -1*opt.trbfslinit # 
+    gaussians.trbfslinit = -1*opt.trbfslinit
     gaussians.preprocesspoints = opt.preprocesspoints 
     gaussians.addsphpointsscale = opt.addsphpointsscale 
     gaussians.raystart = opt.raystart
@@ -68,7 +68,6 @@ def train(dataset, opt, pipe, saving_iterations, debug_from, densify=0, duration
     maxx, maxy, maxz = torch.amax(currentxyz[:,0]), torch.amax(currentxyz[:,1]), torch.amax(currentxyz[:,2])# z wrong...
     minx, miny, minz = torch.amin(currentxyz[:,0]), torch.amin(currentxyz[:,1]), torch.amin(currentxyz[:,2])
     
-
     if os.path.exists(opt.prevpath):
         print("load from " + opt.prevpath)
         reloadhelper(gaussians, opt, maxx, maxy, maxz,  minx, miny, minz)
@@ -81,7 +80,6 @@ def train(dataset, opt, pipe, saving_iterations, debug_from, densify=0, duration
     gaussians.training_setup(opt)
     
     numchannel = 9 
-
     bg_color = [1, 1, 1] if dataset.white_background else [0 for i in range(numchannel)]
     background = torch.tensor(bg_color, dtype=torch.float32, device="cuda")
 
@@ -186,11 +184,20 @@ def train(dataset, opt, pipe, saving_iterations, debug_from, densify=0, duration
                     Ll1 = l1_loss(image, gt_image)
                     loss = getloss(opt, Ll1, ssim, image, gt_image, gaussians, radii)
 
-                if use_depth:
+                if use_reldepth:
                     # Should be modified: L1 loss
                     depth_low, depth_high = torch.quantile(depth, 0.15), torch.quantile(depth, 0.85)
                     gt_depth_low, gt_depth_high = torch.quantile(gt_depth, 0.15), torch.quantile(gt_depth, 0.85)
                     gt_depth = (depth_high - depth_low) / (gt_depth_high - gt_depth_low) * (gt_depth - gt_depth_low) + depth_low
+
+                    Ll1 = l1_loss(depth, gt_depth)
+                    loss += args.lambda_depth * Ll1
+
+                elif use_absdepth:
+                    # Should be modified: L1 loss
+                    # depth_low, depth_high = torch.quantile(depth, 0.15), torch.quantile(depth, 0.85)
+                    # gt_depth_low, gt_depth_high = torch.quantile(gt_depth, 0.15), torch.quantile(gt_depth, 0.85)
+                    # gt_depth = (depth_high - depth_low) / (gt_depth_high - gt_depth_low) * (gt_depth - gt_depth_low) + depth_low
 
                     Ll1 = l1_loss(depth, gt_depth)
                     loss += args.lambda_depth * Ll1
@@ -242,8 +249,6 @@ def train(dataset, opt, pipe, saving_iterations, debug_from, densify=0, duration
             if (iteration in saving_iterations):
                 print("\n[ITER {}] Saving Gaussians".format(iteration))
                 scene.save(iteration)
-
-
 
 
             # Densification and pruning here
@@ -395,7 +400,8 @@ def train(dataset, opt, pipe, saving_iterations, debug_from, densify=0, duration
 if __name__ == "__main__":
     
     args, lp_extract, op_extract, pp_extract = getparser()
-    train(lp_extract, op_extract, pp_extract, args.save_iterations, args.debug_from, densify=args.densify, duration=args.duration, rgbfunction=args.rgbfunction, rdpip=args.rdpip, use_depth=args.depth)
+    train(lp_extract, op_extract, pp_extract, args.save_iterations, args.debug_from, densify=args.densify, duration=args.duration, rgbfunction=args.rgbfunction, rdpip=args.rdpip,
+            use_reldepth=args.reldepth, use_absdepth=args.absdepth)
 
     # All done
     print("\nTraining complete.")

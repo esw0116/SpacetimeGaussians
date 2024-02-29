@@ -80,20 +80,31 @@ class OptimizationParams(ParamGroup):
         self.position_lr_init = 0.00016
         self.position_lr_final = 0.0000016
         self.position_lr_delay_mult = 0.01
+        # self.position_lr_init = 0.0
+        # self.position_lr_final = 0.0
+        # self.position_lr_delay_mult = 0.0
         self.position_lr_max_steps = 30_000
         self.feature_lr = 0.0025
         self.featuret_lr = 0.001
         self.opacity_lr = 0.05
-        self.scaling_lr = 0.005
+        # self.scaling_lr = 0.005
+        # self.feature_lr = 0.0
+        # self.featuret_lr = 0.0
+        # self.opacity_lr = 0.0
+        self.scaling_lr = 0.0
 
         self.trbfc_lr = 0.0001 # 
         self.trbfs_lr = 0.03
+        # self.trbfc_lr = 0.0 
+        # self.trbfs_lr = 0.0
         self.trbfslinit = 0.0 # 
         self.batch = 2
         self.movelr = 3.5
 
-        self.omega_lr = 0.0001
-        self.rotation_lr = 0.001
+        # self.omega_lr = 0.0001
+        # self.rotation_lr = 0.001
+        self.omega_lr = 0.0
+        self.rotation_lr = 0.0
         self.percent_dense = 0.01
         self.lambda_dssim = 0.2
         self.densification_interval = 100
@@ -103,6 +114,7 @@ class OptimizationParams(ParamGroup):
         self.densify_until_iter = 9000
         self.densify_grad_threshold = 0.0002
         self.rgb_lr = 0.0001
+        # self.rgb_lr = 0.0
         self.desicnt = 6
         self.reg = 0 
         self.regl = 0.0001 
@@ -112,7 +124,7 @@ class OptimizationParams(ParamGroup):
         self.emstype = 0
         self.radials = 10.0
         self.farray = 2 # 
-        self.emsstart = 1600 #small for debug
+        self.emsstart = 30000 #1600 #small for debug
         self.losstart = 200
         self.saveemppoints = 0 #
         self.prunebysize = 0 

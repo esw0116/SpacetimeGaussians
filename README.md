@@ -1,5 +1,17 @@
 # Spacetime Gaussian Feature Splatting for Real-Time Dynamic View Synthesis
 
+## Ours modification
+1. create environment using ```environment.yml```
+```
+pip install thirdparty/gaussian_splatting/submodules/diff-gaussian-erp-rasterization
+```
+2. put ply folders to a designated folder
+3. copy ```transforms_train.json``` to the data folders
+3. Run the code below
+```
+python train.py --config configs/ours.json --model_path [save_path] --source_path [input folder]
+```
+
 [Project Page](https://oppo-us-research.github.io/SpacetimeGaussians-website/) | [Paper](https://arxiv.org/abs/2312.16812) | [Video](https://youtu.be/YsPPmf-E6Lg) | [Viewer & Pre-Trained Models](https://huggingface.co/stack93/spacetimegaussians/tree/main)
 
 

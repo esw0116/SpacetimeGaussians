@@ -196,8 +196,8 @@ pyrightconfig.json
 
 dataset
 experiments
+examples
 
 script/mmcv
 script/pretrained
 
-thirdparty/gaussian_splatting/submodules/gaussian_rasterization_ch9/diff_gaussian_rasterization_ch9.egg-info/PKG-INFO

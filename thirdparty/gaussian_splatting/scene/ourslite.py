@@ -239,14 +239,11 @@ class GaussianModel:
         nn.init.constant_(self._omega, 0)
         self.rgb_grd = {}
 
-
-
         self.maxz, self.minz = torch.amax(self._xyz[:,2]), torch.amin(self._xyz[:,2]) 
         self.maxy, self.miny = torch.amax(self._xyz[:,1]), torch.amin(self._xyz[:,1]) 
         self.maxx, self.minx = torch.amax(self._xyz[:,0]), torch.amin(self._xyz[:,0]) 
         self.maxz = min((self.maxz, 200.0)) # some outliers in the n4d datasets.. 
         
-       
         
 
     def cache_gradient(self):

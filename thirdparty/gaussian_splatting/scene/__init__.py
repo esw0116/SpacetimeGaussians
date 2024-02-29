@@ -24,7 +24,7 @@ class Scene:
 
     # gaussians : GaussianModel
 
-    def __init__(self, args : ModelParams, gaussians, load_iteration=None, shuffle=True, resolution_scales=[1.0], multiview=False,duration=50.0, loader="colmap"):
+    def __init__(self, args : ModelParams, gaussians, load_iteration=None, shuffle=False, resolution_scales=[1.0], multiview=False, duration=50.0, loader="colmap"):
         """b
         :param path: Path to colmap scene main folder.
         """
@@ -62,6 +62,9 @@ class Scene:
         
         elif loader == "blender" : # Blender type
             scene_info = sceneLoadTypeCallbacks["blender"](args.source_path, args.images, args.eval, multiview, duration=duration)
+        elif loader == "blender_erp" : # Blender type
+            scene_info = sceneLoadTypeCallbacks["blender_erp"](args.source_path, args.images, args.eval, multiview, duration=duration)
+
         else:
             assert False, "Could not recognize scene type!"
 
@@ -79,9 +82,9 @@ class Scene:
             with open(os.path.join(self.model_path, "cameras.json"), 'w') as file:
                 json.dump(json_cams, file, indent=2)
 
-        if shuffle:
-            random.shuffle(scene_info.train_cameras)  # Multi-res consistent random shuffling
-            random.shuffle(scene_info.test_cameras)  # Multi-res consistent random shuffling
+        # if shuffle:
+        #     random.shuffle(scene_info.train_cameras)  # Multi-res consistent random shuffling
+        #     random.shuffle(scene_info.test_cameras)  # Multi-res consistent random shuffling
 
 
         self.cameras_extent = scene_info.nerf_normalization["radius"]
@@ -91,18 +94,15 @@ class Scene:
             if loader in ["colmapvalid", "colmapmv", "immersivevalid","technicolorvalid", "immersivevalidss", "imv2valid"]:         
                 self.train_cameras[resolution_scale] = [] # no training data
 
-
             elif loader in ["immersivess"]:
                 assert resolution_scale == 1.0, "High frequency data only available at 1.0 scale"
                 self.train_cameras[resolution_scale] = cameraList_from_camInfosv2(scene_info.train_cameras, resolution_scale, args, ss=True)
 
-            else: # immersive and immersivevalid 
+            else: # immersive and immersivevalid
                 self.train_cameras[resolution_scale] = cameraList_from_camInfosv2(scene_info.train_cameras, resolution_scale, args)
             
-            
-            
             print("Loading Test Cameras")
-            if loader  in ["colmapvalid", "immersivevalid", "colmap", "technicolorvalid", "technicolor", "imv2","imv2valid", "blender"]: # we need gt for metrics
+            if loader  in ["colmapvalid", "immersivevalid", "colmap", "technicolorvalid", "technicolor", "imv2","imv2valid", "blender", "blender_erp"]: # we need gt for metrics
                 self.test_cameras[resolution_scale] = cameraList_from_camInfosv2(scene_info.test_cameras, resolution_scale, args)
             elif loader in ["immersivess", "immersivevalidss"]:
                 self.test_cameras[resolution_scale] = cameraList_from_camInfosv2(scene_info.test_cameras, resolution_scale, args, ss=True)

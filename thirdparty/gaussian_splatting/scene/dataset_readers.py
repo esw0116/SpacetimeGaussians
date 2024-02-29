@@ -981,9 +981,9 @@ def readCamerasFromTransforms(path, transformsfile, white_background, extension,
 
 def readNerfSyntheticInfo(path, white_background, eval, multiview=False, duration=50, extension=".png"):
     print("Reading Training Transforms")
-    train_cam_infos = readCamerasFromTransforms(path, "transforms_train.json", white_background, extension, 0.01, 100)
+    train_cam_infos = readCamerasFromTransforms(path, "transforms_train.json", white_background, extension, 0.01, 100, duration=duration)
     print("Reading Test Transforms")
-    # test_cam_infos = readCamerasFromTransforms(path, "transforms_test.json", white_background, extension, 0.01, 100)
+    # test_cam_infos = readCamerasFromTransforms(path, "transforms_test.json", white_background, extension, 0.01, 100, duration=duration)
     test_cam_infos = []
 
     if not eval:
@@ -1000,7 +1000,7 @@ def readNerfSyntheticInfo(path, white_background, eval, multiview=False, duratio
         totalrgb = []
         totaltime = []
         for i in range(starttime, starttime + duration):
-            thisply_path = os.path.join(path, f"colmap_{i}", "blender.ply")
+            thisply_path = os.path.join(path, f"colmap_{i}", "blender00.ply")
             if not os.path.exists(thisply_path):
                 continue
             # xyz, rgb, _ = read_points3D_binary(thisbin_path)
@@ -1047,6 +1047,127 @@ def readNerfSyntheticInfo(path, white_background, eval, multiview=False, duratio
     return scene_info
 
 
+def readERPCamerasFromTransforms(path, transformsfile, white_background, extension, near, far, startime=0, duration=25):
+    cam_infos = []
+
+    with open(os.path.join(path, transformsfile)) as json_file:
+        contents = json.load(json_file)
+        fovx = contents["camera_angle_x"]
+
+        frames = contents["frames"]
+        for idx, frame in enumerate(frames):
+            # cam_name = os.path.join(path, frame["file_path"] + extension)
+
+            c2w = np.linalg.inv(np.array(frame["transform_matrix"]))
+            c2w[:3, 1:3] *= -1
+            # get the world-to-camera transform and set R, T
+            w2c = np.linalg.inv(c2w)
+            R = np.transpose(w2c[:3,:3])  # R is stored transposed due to 'glm' in CUDA code
+            T = w2c[:3, 3]
+            # R = -np.transpose(matrix[:3,:3])
+            # R[:,0] = -R[:,0]
+            # T = -matrix[:3, 3]
+            
+            for j in range(startime, startime+int(duration)):
+                # print(j, extension)
+                image_path = os.path.join(path, f'{j:03d}', frame["file_path"] + extension)
+                image_name = os.path.splitext(os.path.basename(image_path))[0]
+                image = Image.open(image_path)
+                im_data = np.array(image.convert("RGBA"))
+
+                norm_data = im_data / 255.0
+                bg = np.array([1,1,1]) if white_background else np.array([0, 0, 0])
+                arr = norm_data[:,:,:3] * norm_data[:, :, 3:4] + bg * (1 - norm_data[:, :, 3:4])
+                image = Image.fromarray(np.array(arr*255.0, dtype=np.byte), "RGB")
+
+                depth_path = os.path.join(path, f'{j:03d}', frame["depth_path"] + '.npy')
+                depth = np.load(depth_path)
+
+                fovy = focal2fov(fov2focal(fovx, image.size[0]), image.size[1])
+                FovY = fovy 
+                FovX = fovx
+
+                if j == startime:
+                    cam_info = CameraInfo(uid=idx, R=R, T=T, FovY=FovY, FovX=FovX, image=image, depth=depth, image_path=image_path, image_name=image_name,
+                                            width=image.size[0], height=image.size[1], near=near, far=far, timestamp=(j-startime)/duration, pose=1, hpdirecitons=1, cxr=0.0, cyr=0.0)
+                else:
+                    cam_info = CameraInfo(uid=idx, R=R, T=T, FovY=FovY, FovX=FovX, image=image, depth=depth, image_path=image_path, image_name=image_name,
+                                            width=image.size[0], height=image.size[1], near=near, far=far, timestamp=(j-startime)/duration, pose=None, hpdirecitons=None, cxr=0.0, cyr=0.0)
+                
+                cam_infos.append(cam_info)
+                # cam_infos.append(CameraInfo(uid=idx*20 + j, R=R, T=T, FovY=FovY, FovX=FovX, image=image,
+                #                 image_path=image_path, image_name=image_name, width=image.size[0], height=image.size[1]))
+            
+    return cam_infos
+
+
+def readERPNerfSyntheticInfo(path, white_background, eval, multiview=False, duration=50, extension=".png"):
+    print("Reading Training Transforms")
+    train_cam_infos = readERPCamerasFromTransforms(path, "transforms_train.json", white_background, extension, 0.01, 100, duration=duration)
+    print("Reading Test Transforms")
+    # test_cam_infos = readERPCamerasFromTransforms(path, "transforms_test.json", white_background, extension, 0.01, 100, duration=duration)
+    test_cam_infos = []
+
+    if not eval:
+        train_cam_infos.extend(test_cam_infos)
+        test_cam_infos = []
+
+    nerf_normalization = getNerfppNorm(train_cam_infos)
+
+    starttime=0
+    totalply_path = os.path.join(path, "000", "total_blender" + str(duration) + ".ply")
+    if not os.path.exists(totalply_path):
+        print("Converting point3d.bin to .ply, will happen only the first time you open the scene.")
+        totalxyz = []
+        totalrgb = []
+        totaltime = []
+        for i in range(starttime, starttime + duration):
+            thisply_path = os.path.join(path, f"{i:03d}", "blender.ply")
+            # breakpoint()
+            # if not os.path.exists(thisply_path):
+            #     raise 
+            # xyz, rgb, _ = read_points3D_binary(thisbin_path)
+            plydata = PlyData.read(thisply_path)
+            vertices = plydata['vertex']
+            
+            xyz = np.stack([vertices['x'], vertices['y'], vertices['z']], axis=-1)
+            rgb = np.stack([vertices['red'], vertices['green'], vertices['blue']], axis=-1)
+            
+            totalxyz.append(xyz)
+            totalrgb.append(rgb)
+            totaltime.append(np.ones((xyz.shape[0], 1)) * (i-starttime) / duration)
+
+        xyz = np.concatenate(totalxyz, axis=0)
+        rgb = np.concatenate(totalrgb, axis=0)
+        totaltime = np.concatenate(totaltime, axis=0)
+        assert xyz.shape[0] == rgb.shape[0]  
+        xyzt =np.concatenate( (xyz, totaltime), axis=1)     
+        storePly(totalply_path, xyzt, rgb)
+
+    # ply_path = os.path.join(path, "colmap_0", "blender.ply")
+    # if not os.path.exists(ply_path):
+    #     # Since this data set has no colmap data, we start with random points
+    #     num_pts = 100_000
+    #     print(f"Generating random point cloud ({num_pts})...")
+        
+    #     # We create random points inside the bounds of the synthetic Blender scenes
+    #     xyz = np.random.random((num_pts, 3)) * 2.6 - 1.3
+    #     shs = np.random.random((num_pts, 3)) / 255.0
+    #     pcd = BasicPointCloud(points=xyz, colors=SH2RGB(shs), normals=np.zeros((num_pts, 3)))
+
+    #     storePly(ply_path, xyz, SH2RGB(shs) * 255)
+    try:
+        pcd = fetchPly(totalply_path)
+    except:
+        pcd = None
+    # breakpoint()
+
+    scene_info = SceneInfo(point_cloud=pcd,
+                           train_cameras=train_cam_infos,
+                           test_cameras=test_cam_infos,
+                           nerf_normalization=nerf_normalization,
+                           ply_path=totalply_path)
+    return scene_info
 
 
 
@@ -1218,6 +1339,7 @@ sceneLoadTypeCallbacks = {
     "Immersive": readColmapSceneInfoImmersive,
     "Colmapmv": readColmapSceneInfoMv,
     "blender" : readNerfSyntheticInfo, 
+    "blender_erp" : readERPNerfSyntheticInfo, 
     "Technicolor": readColmapSceneInfoTechnicolor,
 }
 
