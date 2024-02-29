@@ -1,13 +1,14 @@
 # Spacetime Gaussian Feature Splatting for Real-Time Dynamic View Synthesis
 
 ## Ours modification
-1. create environment using ```environment.yml```
+1. Download rasterization file in [link](https://drive.google.com/file/d/1Oga7DQKoj8AYyRsuaKP71gMMCm4eb5zB/view?usp=drive_link) and extract it under thirdparty/gaussian_splatting/submodules
+2. create environment using ```environment.yml```
 ```
 pip install thirdparty/gaussian_splatting/submodules/diff-gaussian-erp-rasterization
 ```
-2. put ply folders to a designated folder
-3. copy ```transforms_train.json``` to the data folders
-3. Run the code below
+3. put ply folders to a designated folder
+4. copy ```transforms_train.json``` to the data folders
+5. Run the code below
 ```
 python train.py --config configs/ours.json --model_path [save_path] --source_path [input folder]
 ```
