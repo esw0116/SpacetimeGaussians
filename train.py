@@ -139,10 +139,10 @@ def train(dataset, opt, pipe, saving_iterations, debug_from, densify=0, duration
             validdepthdict[viewpoint_cam.image_name] = torch.median(depth[slectemask]).item()   
             depthdict[viewpoint_cam.image_name] = torch.amax(depth[slectemask]).item() 
     
-    if densify == 1 or  densify == 2: 
-        zmask = gaussians._xyz[:,2] < 4.5  
-        gaussians.prune_points(zmask) 
-        torch.cuda.empty_cache()
+    # if densify == 1 or  densify == 2: 
+    #     zmask = gaussians._xyz[:,2] < 4.5  
+    #     gaussians.prune_points(zmask) 
+    #     torch.cuda.empty_cache()
 
 
     selectedlength = 2
