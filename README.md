@@ -1,7 +1,12 @@
 # Spacetime Gaussian Feature Splatting for Real-Time Dynamic View Synthesis
 
 ## Ours modification
-1. Download rasterization file in [link](https://drive.google.com/file/d/1Oga7DQKoj8AYyRsuaKP71gMMCm4eb5zB/view?usp=drive_link) and extract it under thirdparty/gaussian_splatting/submodules
+1. Clone rasterization file in [link](https://github.com/esw0116/diff-gaussian-erp-rasterization.git) and extract it under thirdparty/gaussian_splatting/submodules
+```
+cd thirdparty/gaussian_splatting/submodules
+git clone https://github.com/esw0116/diff-gaussian-erp-rasterization.git
+cd ../../..
+```
 2. create environment using ```environment.yml```
 ```
 pip install thirdparty/gaussian_splatting/submodules/diff-gaussian-erp-rasterization
