@@ -194,11 +194,6 @@ def train(dataset, opt, pipe, saving_iterations, debug_from, densify=0, duration
                     loss += args.lambda_depth * Ll1
 
                 elif use_absdepth:
-                    # Should be modified: L1 loss
-                    # depth_low, depth_high = torch.quantile(depth, 0.15), torch.quantile(depth, 0.85)
-                    # gt_depth_low, gt_depth_high = torch.quantile(gt_depth, 0.15), torch.quantile(gt_depth, 0.85)
-                    # gt_depth = (depth_high - depth_low) / (gt_depth_high - gt_depth_low) * (gt_depth - gt_depth_low) + depth_low
-
                     Ll1 = l1_loss(depth, gt_depth)
                     loss += args.lambda_depth * Ll1
 
@@ -206,7 +201,7 @@ def train(dataset, opt, pipe, saving_iterations, debug_from, densify=0, duration
                     if viewpoint_cam.image_name not in lossdiect:
                         lossdiect[viewpoint_cam.image_name] = loss.item()
                         ssimdict[viewpoint_cam.image_name] = ssim(image.clone().detach(), gt_image.clone().detach()).item()
-                
+
                 loss.backward()
                 gaussians.cache_gradient()
                 gaussians.optimizer.zero_grad(set_to_none = True)# 
@@ -240,6 +235,10 @@ def train(dataset, opt, pipe, saving_iterations, debug_from, densify=0, duration
         with torch.no_grad():
             # Progress bar
             ema_loss_for_log = 0.4 * loss.item() + 0.6 * ema_loss_for_log
+
+            if ema_loss_for_log > 0.5 and iteration > 1000:
+                breakpoint()
+
             if iteration % 10 == 0:
                 progress_bar.set_postfix({"Loss": f"{ema_loss_for_log:.{7}f}"})
                 progress_bar.update(10)
@@ -256,9 +255,11 @@ def train(dataset, opt, pipe, saving_iterations, debug_from, densify=0, duration
             if iteration < opt.densify_until_iter :
                 gaussians.max_radii2D[visibility_filter] = torch.max(gaussians.max_radii2D[visibility_filter], radii[visibility_filter])
                 gaussians.add_densification_stats(viewspace_point_tensor, visibility_filter)
+            
             flag = controlgaussians(opt, gaussians, densify, iteration, scene,  visibility_filter, radii, viewspace_point_tensor, flag,  traincamerawithdistance=None, maxbounds=maxbounds,minbounds=minbounds)
             
             # guided sampling step
+            '''
             if iteration > emsstartfromiterations and flagems == 2 and emscnt < selectedlength and viewpoint_cam.image_name in selectviews and (iteration - lasterems > 100): #["camera_0002"] :#selectviews :  #["camera_0002"]:
                 selectviews.pop(viewpoint_cam.image_name) # remove sampled cameras
                 emscnt += 1
@@ -386,7 +387,7 @@ def train(dataset, opt, pipe, saving_iterations, debug_from, densify=0, duration
                     visibility_filter = visibility_filter.bool()
                     radii = torch.cat((radii, torch.zeros(totalNnewpoints).cuda(0)), dim=0)
                     viewspace_point_tensor = torch.cat((viewspace_point_tensor, torch.zeros(totalNnewpoints, 3).cuda(0)), dim=0)
-
+                '''
 
                 
             # Optimizer step

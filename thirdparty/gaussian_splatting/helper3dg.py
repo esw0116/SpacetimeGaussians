@@ -38,7 +38,7 @@ def getparser():
     parser.add_argument('--port', type=int, default=6029)
     parser.add_argument('--debug_from', type=int, default=-2)
     parser.add_argument('--detect_anomaly', action='store_true', default=False)
-    parser.add_argument("--save_iterations", nargs="+", type=int, default=[7_000, 10000, 12000, 25_000, 30_000])
+    parser.add_argument("--save_iterations", nargs="+", type=int, default=[7_000, 25_000, 30_000])
 
     parser.add_argument("--test_iterations", default=-1, type=int)
 
