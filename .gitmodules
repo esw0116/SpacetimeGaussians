@@ -1,0 +1,3 @@
+[submodule "thridparty/gaussian_splatting/submodules/diff-gaussian-erp-rasterization-"]
+	path = thridparty/gaussian_splatting/submodules/diff-gaussian-erp-rasterization
+	url = https://github.com/esw0116/diff-gaussian-erp-rasterization.git
