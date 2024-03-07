@@ -134,10 +134,9 @@ def train(dataset, opt, pipe, saving_iterations, debug_from, densify=0, duration
             midw =  int(viewpoint_cam.image_width/2)
             
             depth = render_pkg["depth"]
-            slectemask = depth != 15.0 
-
-            validdepthdict[viewpoint_cam.image_name] = torch.median(depth[slectemask]).item()   
-            depthdict[viewpoint_cam.image_name] = torch.amax(depth[slectemask]).item() 
+            selectmask = depth != 15.0 
+            validdepthdict[viewpoint_cam.image_name] = torch.median(depth[selectmask]).item()   
+            depthdict[viewpoint_cam.image_name] = torch.amax(depth[selectmask]).item() 
     
     # if densify == 1 or  densify == 2: 
     #     zmask = gaussians._xyz[:,2] < 4.5  
@@ -235,9 +234,6 @@ def train(dataset, opt, pipe, saving_iterations, debug_from, densify=0, duration
         with torch.no_grad():
             # Progress bar
             ema_loss_for_log = 0.4 * loss.item() + 0.6 * ema_loss_for_log
-
-            if ema_loss_for_log > 0.5 and iteration > 1000:
-                breakpoint()
 
             if iteration % 10 == 0:
                 progress_bar.set_postfix({"Loss": f"{ema_loss_for_log:.{7}f}"})

@@ -4,7 +4,7 @@
     "model": "ours_lite",
     "preprocesspoints": 3,
     "test_iteration": 25000,
-    "duration": 25,
+    "duration": 10,
     "rdpip": "train_ours_lite_erp",
     "batch": 1,
     "densify": 0

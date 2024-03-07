@@ -100,6 +100,7 @@ class OptimizationParams(ParamGroup):
         self.trbfslinit = 0.0 # 
         self.batch = 2
         self.movelr = 3.5
+        # self.movelr = 0
 
         # self.omega_lr = 0.0001
         # self.rotation_lr = 0.001
